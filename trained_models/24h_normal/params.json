@@ -1,0 +1,12 @@
+{"batch_size":8,
+"gnn_hidden":128,
+"gnn_layers":4,
+"heads":8,
+"lr":0.0001,
+"max_dist": 100,
+"max_epochs": 10,
+"loss": "NormalCRPS",
+"grad_u": "True",
+"u": 1.71,
+"xi": 0.5,
+"new_gnn": "True"}

@@ -3,10 +3,18 @@ lightning_logs/
 data/
 graphrnn/
 wandb/
-trained_models/archive/
-trained_models/*/models/
-trained_models/
-trained_models
+
+train_models/*/models/
+train_models/*/models
+train_models/*/logs/
+train_models/*/logs
+train_models/*/results/
+train_models/*/results
+
+
+
+
+
 
 
 # Wandb logs
