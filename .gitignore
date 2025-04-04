@@ -8,6 +8,7 @@ trained_models/*/models/
 trained_models/
 trained_models
 
+
 # Wandb logs
 multigraph/
 
