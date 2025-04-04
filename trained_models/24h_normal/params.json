@@ -4,9 +4,8 @@
 "heads":8,
 "lr":0.0001,
 "max_dist": 100,
-"max_epochs": 10,
+"max_epochs": 20,
 "loss": "NormalCRPS",
-"grad_u": "True",
+"grad_u": "False",
 "u": 1.71,
-"xi": 0.5,
-"new_gnn": "True"}
+"xi": 0.5}

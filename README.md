@@ -98,14 +98,14 @@ You can execute multiple runs incorporating
 
 For this run:
    ```
-   chmod +x run_all_train.sh
-   ./run_all_train.sh
+   chmod +x scripts/run_all_train.sh
+   ./scripts/run_all_train.sh
    ```
 
 To evaluate:
    ```
-   chmod +x run_all_eval.sh
-   ./run_all_eval.sh
+   chmod +x scripts/run_all_eval.sh
+   ./scripts/run_all_eval.sh
    ```
 
    

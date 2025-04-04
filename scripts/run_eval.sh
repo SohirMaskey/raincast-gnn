@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
-# run_eval.sh
-# Example usage:
-#    ./scripts/run_eval.sh 24h configs/24h_mixed.json runX rf --no_graph
+# run_all_eval.sh
 
-LEADTIME=$1
-CONFIG=$2
-RUN_ID=$3
-DATA_SPLIT=$4   # "rf" or "f"
-EXTRA=$5        # e.g. "--no_graph"
+LEADTIMES=("24h" "72h" "120h")
+CONFIGS=("normal" "normal_mixed" "mixed" "mixed_u")
+DATAS=("rf" "f")
 
-python eval.py \
-  --leadtime "${LEADTIME}" \
-  --config "${CONFIG}" \
-  --run_id "${RUN_ID}" \
-  --data "${DATA_SPLIT}" \
-  ${EXTRA}
+for LT in "${LEADTIMES[@]}"; do
+  for CFG in "${CONFIGS[@]}"; do
+    for DATA_SPLIT in "${DATAS[@]}"; do
+      FOLDER="trained_models/${LT}_${CFG}"
+      echo "Evaluating data=$DATA_SPLIT for leadtime=$LT, config=$CFG"
+      python eval.py \
+        --leadtime "$LT" \
+        --folder "$FOLDER" \
+        --data "$DATA_SPLIT"
+    done
+  done
+done

@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
-# run_train.sh
-# Example usage:
-#    ./scripts/run_train.sh 24h configs/24h_mixed.json runX --no_graph
+# run_all_train.sh
+# Example: train multiple runs. Adjust as needed.
 
-LEADTIME=$1
-CONFIG=$2
-RUN_ID=$3
+LEADTIMES=("24h" "72h" "120h")
+CONFIGS=("normal" "normal_mixed" "mixed" "mixed_u")
+RUN_IDS=("0")
 
-# optional 4th argument could be e.g. "--no_graph", or empty
-NO_GRAPH=$4
-
-# Example command (adjust path as needed):
-python train.py \
-  --leadtime "${LEADTIME}" \
-  --config "${CONFIG}" \
-  --run_id "${RUN_ID}" \
-  ${NO_GRAPH}
+for LT in "${LEADTIMES[@]}"; do
+  for CFG in "${CONFIGS[@]}"; do
+    for RUN_ID in "${RUN_IDS[@]}"; do
+      TARGET_DIR="trained_models/${LT}_${CFG}"
+      echo "Running training for leadtime=$LT, config=$CFG, run_id=$RUN_ID"
+      python train.py \
+        --leadtime "$LT" \
+        --dir "$TARGET_DIR" \
+        --run_id "$RUN_ID"
+    done
+  done
+done
