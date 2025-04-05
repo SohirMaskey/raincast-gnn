@@ -19,10 +19,8 @@ import torch
 
 from torch_geometric.loader import DataLoader
 
-# Example GNN
 from models.gnn import GNN
-# If we need custom logic
-from utils.data import split_graph  # or remove if not needed
+from utils.data import split_graph
 from utils.dataset import EUPPBench
 
 ############################################################################
@@ -121,15 +119,14 @@ def main():
     # e.g. if args.data == 'rf', we load 'test_rf', else 'test_f'
     split_name = "test_rf" if args.data == "rf" else "test_f"
     test_dataset = EUPPBench(
-        root_raw=root_raw,
-        root_processed=root_processed,
+        root_raw=args.root_raw,
+        root_processed=args.root_processed,
         leadtime=args.leadtime,
         max_dist=config_dict.get("max_dist", 100.0),
         split=split_name
     )
     logger.info(f"Test dataset => {len(test_dataset)} samples.")
 
-    # Optionally apply split_graph if data=="f"
     if args.data == "f":
         # if you want sub-splitting logic
         new_list = []

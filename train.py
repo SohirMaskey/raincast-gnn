@@ -20,7 +20,6 @@ from torch.utils.data import random_split
 from torch.optim import AdamW
 from torch_geometric.loader import DataLoader
 
-# Example import for your GNN model
 from models.gnn import GNN
 from utils.dataset import EUPPBench
 
@@ -140,8 +139,8 @@ def main():
     # Example: using EUPPBench or your custom dataset
     
     train_dataset = EUPPBench(
-        root_raw=root_raw,
-        root_processed=root_processed, 
+        root_raw=args.root_raw,
+        root_processed=args.root_processed, 
         leadtime=args.leadtime,
         max_dist=config.get("max_dist", 100.0),
         split="train_rf"  # e.g. train reforecasts
