@@ -1,18 +1,39 @@
 # GNN Post-Processing for Precipitation Forecasting
 
-This repository trains and evaluates a graph-based model for precipitation forecasting using plain PyTorch + PyTorch Geometric. Below are instructions for installing dependencies, training single runs, evaluating them, and running multiple experiments via a bash script.
-
----
+> **Paper Reference**:  
+> **GRAPH NEURAL NETWORKS FOR ENHANCING ENSEMBLE FORECASTS OF EXTREME RAINFALL**  
+> *Christopher Bülte, Sohir Maskey, Philipp Scholl, Jonas von Berg, Gitta Kutyniok*  
+> Published as a workshop paper at “Tackling Climate Change with Machine Learning”, ICLR 2025
 
 ## Table of Contents
 
-1. [Installation](#installation)
-3. [Environment Setup](#environment-setup)
-4. [Single-Run Training](#single-run-training)
-5. [Single-Run Evaluation](#single-run-evaluation)
-6. [Running All Experiments via Bash](#running-all-experiments-via-bash)
-7. [Where to Find Results](#where-to-find-results)
-8. [License](#license)
+1. [Introduction](#introduction)
+2. [Installation & Environment](#installation--environment)
+3. [Single-Run Training](#single-run-training)
+4. [Single-Run Evaluation](#single-run-evaluation)
+5. [Batch Experiments via Bash](#batch-experiments-via-bash)
+6. [Where to Find Results](#where-to-find-results)
+7. [License](#license)
+
+---
+
+## Introduction
+
+In [our workshop paper](#references) “Graph Neural Networks for Enhancing Ensemble Forecasts of Extreme Rainfall,” we present a novel **graph neural network** (GNN) approach to post-process ensemble forecasts of precipitation. Our focus is on capturing both:
+
+- **Zero-precipitation** events (via a discrete point mass), and  
+- **Heavy-tail extremes** (via a generalized Pareto distribution).  
+
+This addresses challenges arising from **climate-change-driven** extreme rain events, which standard ensemble forecasts (e.g., from ECMWF) often fail to capture. By building station-based graphs and learning **spatial dependencies**, we demonstrate improved calibration and skill for heavy rainfall across multiple lead times.
+
+**Key Features**:
+
+- **Mixture distribution** combining a discrete mass at zero with a tail-modeled GPD.  
+- **DeepSets** to handle ensemble permutations.  
+- **GINE** (Graph Isomorphism Network with Edge features) to embed station-level data and distances.  
+- **CRPS** training for a fully probabilistic forecast distribution.
+
+If you're **interested in** robust, accurate precipitation forecasting with neural networks – especially in the context of extreme events – this code can serve as a reference or baseline for further research.
 
 ---
 
@@ -50,7 +71,7 @@ Install and activate:
    ```
     
 
-# Single-Run Training
+## Single-Run Training
 
 You can do a single run (for example, 24-hour lead time, mixed config) by specifying:
     
@@ -69,7 +90,7 @@ What happens:
 
 - Saves the best checkpoint to trained_models/24h_mixed_u/models/run_0-best.ckpt.
 
-# Single-Run Evaluation
+## Single-Run Evaluation
 
 Similarly, evaluate with:
     
@@ -88,7 +109,7 @@ What happens:
   
 - Logs CRPS & saves eval_f.log, plus a CSV in trained_models/24h_mixed_u/f_results.csv (or f_results.txt summary).
 
-# Running All Experiments via Bash
+## Running All Experiments via Bash
 
 You can execute multiple runs incorporating
 
@@ -109,7 +130,7 @@ To evaluate:
    ```
 
    
-# Where to Find Results
+## Where to Find Results
 
 Each training subdirectory, e.g. trained_models/24h_mixed_u/, will contain:
 
@@ -125,7 +146,15 @@ Each training subdirectory, e.g. trained_models/24h_mixed_u/, will contain:
 
     <data>.txt: CRPS summary.
 
-# License
+## License
 
+If you find this repository helpful in your work, please consider citing:
+
+@inproceedings{buelte2025gnn,
+  title={Graph Neural Networks for Enhancing Ensemble Forecasts of Extreme Rainfall},
+  author={B{\"u}lte, Christopher and Maskey, Sohir and Scholl, Philipp and von Berg, Jonas and Kutyniok, Gitta},
+  booktitle={Tackling Climate Change with Machine Learning (ICLR Workshop)},
+  year={2025}
+}
 
 Happy Forecasting!

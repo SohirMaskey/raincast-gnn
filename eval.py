@@ -1,321 +1,3 @@
-# #!/usr/bin/env python3
-# """
-# eval.py
-
-# Script to evaluate one or more trained GNN checkpoints
-# using PyTorch Lightning. Logs to both console and file (no wandb).
-# Includes seed setting for reproducibility.
-# """
-
-# import argparse
-# import json
-# import logging
-# import os
-# import sys
-# import numpy as np
-# import pandas as pd
-# import torch
-
-# import pytorch_lightning as L
-# from pytorch_lightning import seed_everything
-# from torch_geometric.loader import DataLoader
-# from torch.optim import AdamW
-# from dataclasses import dataclass
-
-# from models.gnn import GNN
-# from utils.data import (
-#     split_graph
-# )
-
-# def parse_args():
-#     """Parse command-line arguments."""
-#     parser = argparse.ArgumentParser(description="Evaluate an ensemble of graph-based model checkpoints.")
-#     parser.add_argument(
-#         "--data",
-#         type=str,
-#         default="rf",
-#         choices=["rf", "f"],
-#         help='Dataset to evaluate on. Either "rf" or "f".'
-#     )
-#     parser.add_argument(
-#         "--leadtime",
-#         type=str,
-#         default="24h",
-#         help='Lead time for evaluation, e.g. "24h", "72h", or "120h".'
-#     )
-#     parser.add_argument(
-#         "--folder",
-#         type=str,
-#         required=True,
-#         help="Folder containing 'params.json' and a 'models/' subfolder with .ckpt files."
-#     )
-#     parser.add_argument(
-#         "--no_graph",
-#         action="store_true",
-#         help="Disable graph connectivity (should match training if used)."
-#     )
-#     parser.add_argument(
-#         "--batch_size_rf",
-#         type=int,
-#         default=1,
-#         help="Batch size to use when evaluating on 'rf' data."
-#     )
-#     parser.add_argument(
-#         "--batch_size_f",
-#         type=int,
-#         default=5,
-#         help="Batch size to use when evaluating on 'f' data."
-#     )
-#     parser.add_argument(
-#         "--seed",
-#         type=int,
-#         default=42,
-#         help="Random seed for reproducibility."
-#     )
-
-#     return parser.parse_args()
-
-
-# def main():
-#     """Main evaluation function with reproducibility in mind."""
-#     args = parse_args()
-
-#     # ------------------------------------------------------------------------------
-#     # Set up logging
-#     # ------------------------------------------------------------------------------
-#     os.makedirs(args.folder, exist_ok=True)
-#     log_file = os.path.join(args.folder, f"eval_{args.data}.log")
-
-#     logging.basicConfig(
-#         level=logging.INFO,
-#         format="%(asctime)s [%(levelname)s] %(message)s",
-#         handlers=[
-#             logging.FileHandler(log_file, mode="w"),
-#             logging.StreamHandler(sys.stdout)
-#         ]
-#     )
-#     logger = logging.getLogger(__name__)
-
-#     logger.info("========== Evaluation Script Started ==========")
-#     logger.info("Command-line arguments: %s", args)
-
-#     # ------------------------------------------------------------------------------
-#     # Set random seed for reproducibility
-#     # ------------------------------------------------------------------------------
-#     seed_everything(args.seed, workers=True)
-#     # torch.use_deterministic_algorithms(True)
-
-#     # ------------------------------------------------------------------------------
-#     # Load Config
-#     # ------------------------------------------------------------------------------
-#     json_path = os.path.join(args.folder, "params.json")
-#     if not os.path.isfile(json_path):
-#         logger.error("Config file not found: %s", json_path)
-#         sys.exit(1)
-
-#     with open(json_path, "r") as f:
-#         config_dict = json.load(f)
-#     logger.info("Loaded config from %s: %s", json_path, config_dict)
-
-#     @dataclass
-#     class DummyConfig:
-#         pass
-
-#     config = DummyConfig()
-#     for key, value in config_dict.items():
-#         setattr(config, key, value)
-
-#     # ------------------------------------------------------------------------------
-#     # Load Data
-#     # ------------------------------------------------------------------------------
-#     # dataframes = load_dataframes(leadtime=args.leadtime)
-
-#     # dist_matrix = load_distances(dataframes["stations"])
-
-#     # # Create Graphs
-#     # graphs_train_rf, tests = normalize_features_and_create_graphs(
-#     #     training_data=dataframes["train"],
-#     #     valid_test_data=[dataframes["test_rf"], dataframes["test_f"]],
-#     #     mat=dist_matrix,
-#     #     max_dist=config.max_dist,
-#     #     new_gnn=config.new_gnn
-#     # )
-#     # graphs_test_rf, graphs_test_f = tests
-
-#     from torch.utils.data import random_split
-#     from utils.dataset import EUPPBench
-
-#     # 1. Create the train dataset (will download/unzip if needed, then process)
-#     root_dir="/home/groups/ai/buelte/precip/Singapur-Trip-25/data"
-#     root_processed="data/EUPPBench" 
-
-#     graphs_train_rf = EUPPBench(root_raw=root_dir, root_processed=root_processed, leadtime="24h", split="train_rf")
-#     graphs_test_rf = EUPPBench(root_raw=root_dir, root_processed=root_processed, leadtime="24h", split="test_rf")
-#     graphs_test_f  = EUPPBench(root_raw=root_dir, root_processed=root_processed, leadtime="24h", split="test_f")
-
-#     # Pick the relevant test set
-#     if args.data == "rf":
-#         graphs_test = graphs_test_rf
-#     else:
-#         graphs_test = graphs_test_f
-
-#     graphs_test_labels = graphs_test.y
-
-#     # If evaluating on "f" data and not using summary only, might need to split
-#     if args.data == "f":
-#         logger.info("Splitting graphs for 'f' data post-processing...")
-#         splitted = [split_graph(g, config.new_gnn) for g in graphs_test]
-#         graphs_test = [g for sublist in splitted for g in sublist]
-
-#     # ------------------------------------------------------------------------------
-#     # Data Loaders
-#     # ------------------------------------------------------------------------------
-#     logger.info("Creating DataLoaders...")
-#     # Re-use the training set loader if needed for dummy passes
-#     train_loader = DataLoader(
-#         graphs_train_rf,
-#         batch_size=config.batch_size,
-#         shuffle=True,
-#         generator=torch.Generator().manual_seed(args.seed)  # ensures consistent order
-#     )
-
-#     # If data == "rf", we default to batch_size_rf, else batch_size_f
-#     test_batch_size = args.batch_size_rf if args.data == "rf" else args.batch_size_f
-#     test_loader = DataLoader(graphs_test, batch_size=test_batch_size, shuffle=False)
-
-#     # ------------------------------------------------------------------------------
-#     # Determine Output Dimensions
-#     # ------------------------------------------------------------------------------
-#     if config.loss == "NormalCRPS":
-#         output_dims = 2
-#         columns = ["tp6", "mu", "sigma"]
-#     elif config.loss == "MixedNormalCRPS":
-#         output_dims = 3
-#         columns = ["tp6", "mu", "sigma", "p"]
-#     elif config.loss == "MixedLoss":
-#         if str(config.grad_u).lower() in ["true", "1"]:
-#             output_dims = 5
-#             columns = ["tp6", "mu", "sigma", "p", "sigma_u", "u"]
-#         else:
-#             output_dims = 4
-#             columns = ["tp6", "mu", "sigma", "p", "sigma_u"]
-#     else:
-#         # Default fallback
-#         output_dims = 2
-#         columns = ["tp6", "predA", "predB"]
-
-#     # ------------------------------------------------------------------------------
-#     # Model Ensemble
-#     # ------------------------------------------------------------------------------
-#     emb_dim = 20
-#     # Example dimension; adapt to your dataset
-#     in_channels = 55
-
-#     ckpt_folder = os.path.join(args.folder, "models")
-#     if not os.path.isdir(ckpt_folder):
-#         logger.error("Expected 'models/' subfolder at %s", ckpt_folder)
-#         sys.exit(1)
-
-#     ckpt_files = [f for f in os.listdir(ckpt_folder) if f.endswith(".ckpt")]
-#     if not ckpt_files:
-#         logger.error("No .ckpt files found in %s", ckpt_folder)
-#         sys.exit(1)
-
-#     logger.info("Found %d checkpoint(s) in '%s'.", len(ckpt_files), ckpt_folder)
-
-#     preds_list = []
-#     for ckpt_name in ckpt_files:
-#         ckpt_path = os.path.join(ckpt_folder, ckpt_name)
-#         logger.info("Loading checkpoint: %s", ckpt_path)
-#         checkpoint = torch.load(ckpt_path, map_location="cpu")
-
-#         # Create model instance
-#         model = GNN(
-#             embedding_dim=emb_dim,
-#             in_channels=in_channels,
-#             hidden_channels_gnn=config.gnn_hidden,
-#             out_channels_gnn=config.gnn_hidden,
-#             num_layers_gnn=config.gnn_layers,
-#             heads=config.heads,
-#             hidden_channels_deepset=config.gnn_hidden,
-#             optimizer_class=AdamW,
-#             optimizer_params=dict(lr=config.lr),
-#             loss=config.loss,
-#             grad_u=config.grad_u,
-#             u=config.u,
-#             xi=config.xi,
-#             no_graph=args.no_graph
-#         )
-
-#         # Dummy forward pass
-#         dummy_batch = next(iter(train_loader))
-#         model.forward(dummy_batch)
-
-#         model.load_state_dict(checkpoint["state_dict"])
-
-#         # Predict
-#         trainer = L.Trainer(
-#             log_every_n_steps=1,
-#             accelerator="gpu",
-#             devices=1,
-#             enable_progress_bar=True,
-#             logger=False,  # Disables Lightning default logging
-#             # deterministic=True
-#         )
-#         predictions = trainer.predict(model=model, dataloaders=[test_loader])
-
-#         # If data == "f" and not summary only, average across batch dimension
-#         if args.data == "f":
-#             # Each item in predictions is (batch_size, num_nodes, output_dims)
-#             predictions = [
-#                 x.reshape(test_batch_size, -1, output_dims).mean(axis=0)
-#                 for x in predictions
-#             ]
-
-#         pred_tensor = torch.cat(predictions, dim=0)
-#         preds_list.append(pred_tensor)
-
-#     # Average across all checkpoints
-#     stacked_preds = torch.stack(preds_list, dim=0)  # [num_ckpts, num_samples, output_dims]
-#     final_preds = torch.mean(stacked_preds, dim=0)  # [num_samples, output_dims]
-
-#     # ------------------------------------------------------------------------------
-#     # Evaluate CRPS
-#     # ------------------------------------------------------------------------------
-#     targets_tensor = graphs_test_labels
-
-#     # targets_tensor = torch.tensor(targets_df.tp6.values)
-#     res = model.loss_fn.crps(final_preds, targets_tensor)
-
-#     logger.info("========================================")
-#     logger.info("Final CRPS for data='%s': %.6f", args.data, res.item())
-#     logger.info("========================================")
-
-#     # ------------------------------------------------------------------------------
-#     # Save Predictions to CSV
-#     # ------------------------------------------------------------------------------
-#     combined = np.concatenate([targets_tensor.view(-1, 1), final_preds], axis=1)
-#     results_df = pd.DataFrame(combined, columns=columns)
-#     csv_path = os.path.join(args.folder, f"{args.data}_results.csv")
-#     results_df.to_csv(csv_path, index=False)
-#     logger.info("Saved predictions to %s", csv_path)
-
-#     # ------------------------------------------------------------------------------
-#     # Save Log Summary
-#     # ------------------------------------------------------------------------------
-#     summary_text = os.path.join(args.folder, f"{args.data}.txt")
-#     with open(summary_text, "w") as f:
-#         f.write(f"Data: {args.data}\n")
-#         f.write(f"Leadtime: {args.leadtime}\n")
-#         f.write(f"Final CRPS: {res.item():.6f}\n")
-#     logger.info("Evaluation summary saved to %s", summary_text)
-#     logger.info("========== Evaluation Script Finished ==========")
-
-
-# if __name__ == "__main__":
-#     main()
-
-
 #!/usr/bin/env python3
 """
 eval.py
@@ -335,14 +17,13 @@ import numpy as np
 import pandas as pd
 import torch
 
-from dataclasses import dataclass
 from torch_geometric.loader import DataLoader
-from torch.optim import AdamW
 
 # Example GNN
 from models.gnn import GNN
 # If we need custom logic
 from utils.data import split_graph  # or remove if not needed
+from utils.dataset import EUPPBench
 
 ############################################################################
 # 1. Argparse
@@ -352,11 +33,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate a GNN model (plain PyTorch).")
     parser.add_argument("--data", type=str, default="rf", choices=["rf","f"], help="Test set to use: 'rf' or 'f'.")
     parser.add_argument("--leadtime", type=str, default="24h", help="Lead time, e.g. '24h'.")
-    parser.add_argument("--folder", type=str, required=True, help="Folder w/ 'params.json' & 'models/' subfolder.")
-    parser.add_argument("--no_graph", action="store_true", help="Disable graph connectivity.")
+    parser.add_argument("--dir", type=str, required=True, help="Folder w/ 'params.json' & 'models/' subdir.")
     parser.add_argument("--batch_size_rf", type=int, default=1, help="Batch size if data='rf'.")
     parser.add_argument("--batch_size_f",  type=int, default=5, help="Batch size if data='f'.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed.")
+    parser.add_argument("--root_raw", type=str, default="data/EUPPBench/raw", help="Path to raw data.")
+    parser.add_argument("--root_processed", type=str, default="data/EUPPBench/processed", help="Path to processed data.")
     return parser.parse_args()
 
 ############################################################################
@@ -398,8 +80,8 @@ def main():
     # ----------------------------------------------------------------------
     # Logging
     # ----------------------------------------------------------------------
-    os.makedirs(args.folder, exist_ok=True)
-    log_dir = os.path.join(args.folder, "logs")
+    os.makedirs(args.dir, exist_ok=True)
+    log_dir = os.path.join(args.dir, "logs")
     os.makedirs(log_dir, exist_ok=True)
     log_file = os.path.join(log_dir, f"eval_{args.data}.log")
     logging.basicConfig(
@@ -422,7 +104,7 @@ def main():
     # ----------------------------------------------------------------------
     # Load Config
     # ----------------------------------------------------------------------
-    config_path = os.path.join(args.folder, "params.json")
+    config_path = os.path.join(args.dir, "params.json")
     if not os.path.isfile(config_path):
         logger.error(f"Config file not found: {config_path}")
         sys.exit(1)
@@ -434,15 +116,13 @@ def main():
     # ----------------------------------------------------------------------
     # Prepare dataset
     # ----------------------------------------------------------------------
-    from utils.dataset import EUPPBench
-    root_data = "/home/groups/ai/buelte/precip/Singapur-Trip-25/data"
 
     # We'll re-create a dataset to get the test set
     # e.g. if args.data == 'rf', we load 'test_rf', else 'test_f'
     split_name = "test_rf" if args.data == "rf" else "test_f"
     test_dataset = EUPPBench(
-        root_raw=root_data,
-        root_processed="data/EUPPBench",
+        root_raw=root_raw,
+        root_processed=root_processed,
         leadtime=args.leadtime,
         max_dist=config_dict.get("max_dist", 100.0),
         split=split_name
@@ -471,19 +151,19 @@ def main():
     targets_tensor = torch.cat(all_targets, dim=0)
 
     # ----------------------------------------------------------------------
-    # Load Checkpoints from folder
+    # Load Checkpoints from dir
     # ----------------------------------------------------------------------
-    ckpt_folder = os.path.join(args.folder, "models")
-    if not os.path.isdir(ckpt_folder):
-        logger.error(f"No 'models' subfolder found at {ckpt_folder}")
+    ckpt_dir = os.path.join(args.dir, "models")
+    if not os.path.isdir(ckpt_dir):
+        logger.error(f"No 'models' subdir found at {ckpt_dir}")
         sys.exit(1)
 
-    ckpt_files = [f for f in os.listdir(ckpt_folder) if f.endswith(".ckpt") or f.endswith(".pth")]
+    ckpt_files = [f for f in os.listdir(ckpt_dir) if f.endswith(".ckpt") or f.endswith(".pth")]
     if not ckpt_files:
-        logger.error("No checkpoints found in %s", ckpt_folder)
+        logger.error("No checkpoints found in %s", ckpt_dir)
         sys.exit(1)
 
-    logger.info(f"Found {len(ckpt_files)} checkpoint(s) in '{ckpt_folder}'.")
+    logger.info(f"Found {len(ckpt_files)} checkpoint(s) in '{ckpt_dir}'.")
 
     # ----------------------------------------------------------------------
     # Make model
@@ -499,7 +179,7 @@ def main():
     preds_ensemble = []
 
     for ckpt_name in ckpt_files:
-        ckpt_path = os.path.join(ckpt_folder, ckpt_name)
+        ckpt_path = os.path.join(ckpt_dir, ckpt_name)
         logger.info(f"Loading checkpoint: {ckpt_path}")
 
         model = GNN(
@@ -544,7 +224,7 @@ def main():
     columns = ["tp6"] + [f"pred_{i}" for i in range(final_preds.shape[1])]
     combined_arr = torch.cat([targets_tensor.view(-1,1), final_preds], dim=1).cpu().numpy()
     df_out = pd.DataFrame(combined_arr, columns=columns)
-    results_dir = os.path.join(args.folder, "results")
+    results_dir = os.path.join(args.dir, "results")
     os.makedirs(results_dir, exist_ok=True)
     csv_path = os.path.join(results_dir, f"{args.data}.csv")
     df_out.to_csv(csv_path, index=False)

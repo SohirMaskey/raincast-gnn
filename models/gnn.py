@@ -1,8 +1,6 @@
 import torch
-from torch.nn import Linear, ModuleList, ReLU
 import torch.nn as nn
-
-import pytorch_lightning as L
+from torch.nn import Linear, ModuleList, ReLU
 
 from torch_geometric.nn import GINEConv
 
@@ -73,8 +71,8 @@ class GNN(torch.nn.Module):
     def __init__(
         self,
         in_channels,               # dimension of extra station features (x_extra) 
-        hidden_channels_gnn,       # hidden size for GATv2 layers
-        out_channels_gnn,          # output dimension from the GATv2 network (pre aggregation)
+        hidden_channels_gnn,       # hidden size for GIN layers
+        out_channels_gnn,          # output dimension from the GIN network (pre aggregation)
         num_layers_gnn,
         optimizer_class,
         optimizer_params,

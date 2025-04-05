@@ -12,7 +12,7 @@ for LT in "${LEADTIMES[@]}"; do
       echo "Evaluating data=$DATA_SPLIT for leadtime=$LT, config=$CFG"
       python eval.py \
         --leadtime "$LT" \
-        --folder "$FOLDER" \
+        --dir "$FOLDER" \
         --data "$DATA_SPLIT"
     done
   done

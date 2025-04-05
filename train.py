@@ -1,194 +1,3 @@
-# #!/usr/bin/env python3
-# """
-# train.py
-
-# Script to train a Multigraph or GNN model using
-# PyTorch Lightning and PyTorch Geometric. 
-# Logs are written to a file and printed to console (no wandb).
-# Includes seed setting for reproducibility.
-# """
-
-# import argparse
-# import json
-# import logging
-# import os
-# import sys
-# import torch
-
-# import pytorch_lightning as L
-# from pytorch_lightning import seed_everything
-# from torch_geometric.loader import DataLoader
-# from torch.optim import AdamW
-
-# from models.gnn import GNN
-
-# def parse_args():
-#     """Parse command-line arguments."""
-#     parser = argparse.ArgumentParser(description="Train a graph-based model for precipitation forecasting.")
-
-#     parser.add_argument(
-#         "--leadtime", 
-#         type=str, 
-#         default="24h",
-#         help="Lead time for training data (e.g. '24h')."
-#     )
-#     parser.add_argument(
-#         "--dir", 
-#         type=str, 
-#         required=True,
-#         help="Path to a directory containing params.json and where models/logs are saved."
-#     )
-#     parser.add_argument(
-#         "--run_id", 
-#         type=str, 
-#         required=True,
-#         help="Unique ID or name for this training run."
-#     )
-#     parser.add_argument(
-#         "--no_graph", 
-#         action="store_true",
-#         help="Disable graph connectivity in the model (for ablation)."
-#     )
-#     parser.add_argument(
-#         "--seed", 
-#         type=int, 
-#         default=42,
-#         help="Random seed for reproducibility."
-#     )
-
-#     return parser.parse_args()
-
-
-# def main():
-#     """Main function to train the model with reproducibility in mind."""
-#     args = parse_args()
-
-#     # ------------------------------------------------------------------------------
-#     # Set up logging
-#     # ------------------------------------------------------------------------------
-#     os.makedirs(args.dir, exist_ok=True)
-#     log_file = os.path.join(args.dir, f"train_{args.run_id}.log")
-
-#     logging.basicConfig(
-#         level=logging.INFO,
-#         format="%(asctime)s [%(levelname)s] %(message)s",
-#         handlers=[
-#             logging.FileHandler(log_file, mode="w"),
-#             logging.StreamHandler(sys.stdout)
-#         ]
-#     )
-#     logger = logging.getLogger(__name__)
-#     logger.info("========== Training Script Started ==========")
-#     logger.info("Command-line arguments: %s", args)
-
-#     # ------------------------------------------------------------------------------
-#     # Set random seed for reproducibility
-#     # ------------------------------------------------------------------------------
-#     seed_everything(args.seed, workers=True)
-
-#     # ------------------------------------------------------------------------------
-#     # Load params from JSON
-#     # ------------------------------------------------------------------------------
-#     json_path = os.path.join(args.dir, "params.json")
-#     if not os.path.isfile(json_path):
-#         logger.error(f"Configuration file not found: {json_path}")
-#         sys.exit(1)
-
-#     with open(json_path, "r") as f:
-#         config = json.load(f)
-
-#     logger.info("Loaded config from %s: %s", json_path, config)
-
-#     from torch.utils.data import random_split
-#     from utils.dataset import EUPPBench
-
-#     # 1. Create the train dataset (will download/unzip if needed, then process)
-#     root_dir="/home/groups/ai/buelte/precip/Singapur-Trip-25/data"
-#     root_processed="data/EUPPBench"
-#     train_dataset = EUPPBench(
-#         root_raw=root_dir, 
-#         root_processed=root_processed,
-#         leadtime="24h",
-#         max_dist=config.get("max_dist", 100.0),
-#         split="train_rf"
-#     )
-
-#     # 2. Do a random train/val split
-#     num_total = len(train_dataset)
-#     num_val = int(0.1 * num_total)
-#     num_train = num_total - num_val
-#     train_subset, val_subset = random_split(train_dataset, [num_train, num_val])
-
-#     print("Train subset size:", len(train_subset))
-#     print("Val subset size:", len(val_subset))
-
-#     train_loader = DataLoader(train_subset, batch_size=config["batch_size"], shuffle=True)
-#     val_loader = DataLoader(val_subset, batch_size=config["batch_size"], shuffle=False)
-
-#     # ------------------------------------------------------------------------------
-#     # Model Creation
-#     # ------------------------------------------------------------------------------
-#     logger.info("Creating model...")
-
-#     emb_dim = 20
-#     # Example of how to define in_channels from the dataset:
-#     in_channels = train_subset[0].x.shape[1] + emb_dim - 1
-
-#     model = GNN(
-#         embedding_dim=emb_dim,
-#         in_channels=in_channels,
-#         hidden_channels_gnn=config["gnn_hidden"],
-#         out_channels_gnn=config["gnn_hidden"],
-#         num_layers_gnn=config["gnn_layers"],
-#         heads=config["heads"],
-#         hidden_channels_deepset=config["gnn_hidden"],
-#         optimizer_class=AdamW,
-#         optimizer_params={"lr": config["lr"]},
-#         loss=config["loss"],
-#         grad_u=config["grad_u"],
-#         u=config["u"],
-#         xi=config["xi"],
-#         no_graph=args.no_graph,
-#     )
-    
-#     # Dummy forward to initialize
-#     example_batch = next(iter(train_loader))
-#     model.forward(example_batch)
-
-#     # ------------------------------------------------------------------------------
-#     # PyTorch Lightning Trainer Setup
-#     # ------------------------------------------------------------------------------
-#     save_path = os.path.join(args.dir, "models")
-#     os.makedirs(save_path, exist_ok=True)
-
-#     checkpoint_callback = L.callbacks.ModelCheckpoint(
-#         dirpath=save_path,
-#         filename=f"run_{args.run_id}" + "-{epoch:02d}-{val_loss:.4f}",
-#         monitor="val_loss",
-#         mode="min",
-#         save_top_k=1
-#     )
-
-#     trainer = L.Trainer(
-#         max_epochs=config["max_epochs"],
-#         log_every_n_steps=1,
-#         accelerator="gpu",
-#         devices=1,
-#         enable_progress_bar=True,
-#         logger=False,  # Disables Lightning's default loggers
-#         callbacks=[checkpoint_callback],
-#     )
-
-#     logger.info("Starting training...")
-#     trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=val_loader)
-#     logger.info("Training complete. Best model checkpoint saved in %s", save_path)
-
-#     logger.info("========== Training Script Finished ==========")
-
-
-# if __name__ == "__main__":
-#     main()
-
 #!/usr/bin/env python3
 """
 train.py
@@ -206,14 +15,14 @@ import sys
 import random
 import numpy as np
 import torch
+from torch.utils.data import random_split
 
 from torch.optim import AdamW
 from torch_geometric.loader import DataLoader
 
 # Example import for your GNN model
 from models.gnn import GNN
-# If you have a CRPS or other loss function inside the model, we can use that
-# or you might do model(...).lossFn(...) in the loop.
+from utils.dataset import EUPPBench
 
 ############################################################################
 # 1. Argparse
@@ -224,8 +33,9 @@ def parse_args():
     parser.add_argument("--leadtime", type=str, default="24h", help="Lead time for the dataset (e.g. '24h').")
     parser.add_argument("--dir", type=str, required=True, help="Directory containing params.json and for logs/checkpoints.")
     parser.add_argument("--run_id", type=str, required=True, help="Unique ID for this run.")
-    parser.add_argument("--no_graph", action="store_true", help="Disable graph connectivity in the model.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed.")
+    parser.add_argument("--root_raw", type=str, default="data/EUPPBench/raw", help="Path to raw data.")
+    parser.add_argument("--root_processed", type=str, default="data/EUPPBench/processed", help="Path to processed data.")
     return parser.parse_args()
 
 ############################################################################
@@ -328,14 +138,10 @@ def main():
     # Create Dataset & Split
     # ----------------------------------------------------------------------
     # Example: using EUPPBench or your custom dataset
-    from torch.utils.data import random_split
-    from utils.dataset import EUPPBench
-
-    root_dir="/home/groups/ai/buelte/precip/Singapur-Trip-25/data"
-    # The user would have to adjust these to your environment
+    
     train_dataset = EUPPBench(
-        root_raw=root_dir,
-        root_processed="data/EUPPBench",  # or wherever
+        root_raw=root_raw,
+        root_processed=root_processed, 
         leadtime=args.leadtime,
         max_dist=config.get("max_dist", 100.0),
         split="train_rf"  # e.g. train reforecasts
