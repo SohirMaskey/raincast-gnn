@@ -1,3 +1,6 @@
+# Code adapted from
+# https://github.com/hits-mli/gnn-post-processing/blob/main/utils/data.py
+
 import numpy as np
 import pandas as pd
 import torch

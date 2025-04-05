@@ -5,6 +5,9 @@
 > *Christopher Bülte, Sohir Maskey, Philipp Scholl, Jonas von Berg, Gitta Kutyniok*  
 > Published as a workshop paper at “Tackling Climate Change with Machine Learning”, ICLR 2025
 
+This repository implements a graph-based post-processing framework for ensemble precipitation forecasts. The approach leverages graph neural networks to explicitly model spatial dependencies and to improve the prediction of extreme rainfall events.  
+**This code started as a fork from [gnn-post-processing](https://github.com/hits-mli/gnn-post-processing/tree/main).**
+
 ## Table of Contents
 
 1. [Introduction](#introduction)
@@ -126,14 +129,14 @@ You can execute multiple runs incorporating
 
 For this run:
    ```
-   chmod +x scripts/run_all_train.sh
-   ./scripts/run_all_train.sh
+   chmod +x scripts/run_train.sh
+   ./scripts/run_train.sh
    ```
 
 To evaluate:
    ```
-   chmod +x scripts/run_all_eval.sh
-   ./scripts/run_all_eval.sh
+   chmod +x scripts/run_eval.sh
+   ./scripts/run_eval.sh
    ```
 
    

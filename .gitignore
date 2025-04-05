@@ -4,12 +4,14 @@ data/
 graphrnn/
 wandb/
 
-train_models/*/models/
-train_models/*/models
-train_models/*/logs/
-train_models/*/logs
-train_models/*/results/
-train_models/*/results
+trained_models/*/models/
+trained_models/*/models
+trained_models/*/logs/
+trained_models/*/logs
+trained_models/*/results/
+trained_models/*/results
+
+
 
 
 
