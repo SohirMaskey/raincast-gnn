@@ -35,7 +35,14 @@ This addresses challenges arising from **climate-change-driven** extreme rain ev
 
 If you're **interested in** robust, accurate precipitation forecasting with neural networks – especially in the context of extreme events – this code can serve as a reference or baseline for further research.
 
----
+We show that this method better captures **rare, high-rainfall events** than standard ensemble post-processing methods – a crucial improvement under climate-change-driven extremes.
+
+This figure highlights how our GNN approach assigns higher probabilities to **heavy-rain** scenarios compared to conventional ensemble forecasts.
+
+    <center>
+    <img src="imgs/spatial_extremes.svg">
+    </center>
+
 
 ## Installation
 
@@ -149,12 +156,12 @@ Each training subdirectory, e.g. trained_models/24h_mixed_u/, will contain:
 ## License
 
 If you find this repository helpful in your work, please consider citing:
-
-@inproceedings{buelte2025gnn,
-  title={Graph Neural Networks for Enhancing Ensemble Forecasts of Extreme Rainfall},
-  author={B{\"u}lte, Christopher and Maskey, Sohir and Scholl, Philipp and von Berg, Jonas and Kutyniok, Gitta},
-  booktitle={Tackling Climate Change with Machine Learning (ICLR Workshop)},
-  year={2025}
-}
-
+    ```
+    @inproceedings{buelte2025gnn,
+    title={Graph Neural Networks for Enhancing Ensemble Forecasts of Extreme Rainfall},
+    author={B{\"u}lte, Christopher and Maskey, Sohir and Scholl, Philipp and von Berg, Jonas and Kutyniok, Gitta},
+    booktitle={Tackling Climate Change with Machine Learning (ICLR Workshop)},
+    year={2025}
+    }
+    ```
 Happy Forecasting!
