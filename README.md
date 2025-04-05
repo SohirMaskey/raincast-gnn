@@ -39,9 +39,9 @@ We show that this method better captures **rare, high-rainfall events** than sta
 
 This figure highlights how our GNN approach assigns higher probabilities to **heavy-rain** scenarios compared to conventional ensemble forecasts.
 
-    <center>
-    <img src="imgs/spatial_extremes.svg">
-    </center>
+<center>
+<img src="imgs/spatial_extremes.svg">
+</center>
 
 
 ## Installation
