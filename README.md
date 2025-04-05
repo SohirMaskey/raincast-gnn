@@ -156,12 +156,12 @@ Each training subdirectory, e.g. trained_models/24h_mixed_u/, will contain:
 ## License
 
 If you find this repository helpful in your work, please consider citing:
-    ```
-    @inproceedings{buelte2025gnn,
-    title={Graph Neural Networks for Enhancing Ensemble Forecasts of Extreme Rainfall},
-    author={B{\"u}lte, Christopher and Maskey, Sohir and Scholl, Philipp and von Berg, Jonas and Kutyniok, Gitta},
-    booktitle={Tackling Climate Change with Machine Learning (ICLR Workshop)},
-    year={2025}
-    }
-    ```
+```
+@inproceedings{buelte2025gnn,
+title={Graph Neural Networks for Enhancing Ensemble Forecasts of Extreme Rainfall},
+author={B{\"u}lte, Christopher and Maskey, Sohir and Scholl, Philipp and von Berg, Jonas and Kutyniok, Gitta},
+booktitle={Tackling Climate Change with Machine Learning (ICLR Workshop)},
+year={2025}
+}
+```
 Happy Forecasting!
