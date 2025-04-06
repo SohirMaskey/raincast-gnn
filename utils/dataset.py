@@ -8,9 +8,6 @@ import torch
 from torch_geometric.data import InMemoryDataset, Data
 from typing import List, Optional
 
-# Use your existing code from data.py
-# (We'll import the relevant functions here, or copy them inline.)
-# For clarity, let's assume they're in a separate file named data_utils.py
 from .data import (
     load_zarr_data_and_create_graphs
 )
