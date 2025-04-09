@@ -1,4 +1,4 @@
-# GNN Post-Processing for Precipitation Forecasting
+# GNN Post-Processing for Precipitation Forecasting  <br>[![arXiv](https://img.shields.io/badge/arXiv-2305.13084-aa142d.svg?logo=arxiv&style=plastic)](https://arxiv.org/abs/2504.05471)
 
 > **Paper Reference**:  
 > **GRAPH NEURAL NETWORKS FOR ENHANCING ENSEMBLE FORECASTS OF EXTREME RAINFALL**  
